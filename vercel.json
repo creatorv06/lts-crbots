@@ -1,13 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" },
-    { "src": "generator.html", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/token/(.*)", "dest": "/public/index.html" },
-    { "src": "/generator.html", "dest": "/generator.html" }
+  "rewrites": [
+    { "source": "/token/(.*)", "destination": "/public/index.html" }
   ]
 }
