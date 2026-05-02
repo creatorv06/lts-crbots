@@ -137,7 +137,7 @@
     async function handleContinue() {
       if (!cfToken) return;
       const btn = document.getElementById('continueBtn');
-      btn.disabled = true; btn.textContent = 'Verifying...';
+      btn.disabled = true; btn.textContent = '𝗩𝗘𝗥𝗜𝗙𝗬𝗜𝗡𝗚...';
       document.getElementById('errorMsg').style.display = 'none';
       try {
         const res = await fetch('/api/verify', {
