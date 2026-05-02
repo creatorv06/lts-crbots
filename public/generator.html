@@ -1,1 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🛡️ LinkGuard Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: #050b14;
+    color: #fff;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 20px);
+  }
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
 
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: rgba(0,180,255,0.1); border: 1px solid rgba(0,180,255,0.3);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .logo-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+  .settings-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5); width: 38px; height: 38px;
+    border-radius: 10px; cursor: pointer; font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+  }
+  .settings-btn:active { background: rgba(255,255,255,0.1); transform: scale(0.93); }
+
+  /* Headline */
+  .headline { font-size: 28px; font-weight: 800; line-height: 1.2; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .headline span { color: #00b4ff; }
+  .sub { font-size: 13px; color: rgba(255,255,255,0.38); font-family: 'Space Mono', monospace; line-height: 1.6; margin-bottom: 28px; }
+
+  /* Warning */
+  .no-config {
+    background: rgba(255,180,0,0.07); border: 1px solid rgba(255,180,0,0.25);
+    border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #ffcc44;
+    font-family: 'Space Mono', monospace; margin-bottom: 16px; line-height: 1.5; display: none;
+  }
+  .no-config.show { display: block; }
+
+  /* Card */
+  .card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 18px; margin-bottom: 14px;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.35);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 10px; font-family: 'Space Mono', monospace;
+  }
+  textarea {
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff;
+    font-family: 'Space Mono', monospace; font-size: 13px;
+    padding: 12px 14px; resize: none; outline: none; line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: rgba(0,180,255,0.4); }
+  textarea::placeholder { color: rgba(255,255,255,0.22); }
+
+  .btn-generate {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #00b4ff, #0077cc);
+    border: none; border-radius: 10px; color: #fff;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+    cursor: pointer; margin-top: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: opacity 0.2s, transform 0.1s; letter-spacing: 0.02em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-generate:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-generate:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .spinner {
+    width: 17px; height: 17px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-box {
+    background: rgba(255,60,60,0.08); border: 1px solid rgba(255,60,60,0.2);
+    border-radius: 8px; padding: 10px 14px; font-size: 12px;
+    font-family: 'Space Mono', monospace; color: #ff6060;
+    margin-top: 10px; display: none; line-height: 1.5;
+  }
+  .error-box.show { display: block; }
+
+  /* Result */
+  .result-card {
+    background: rgba(0,180,255,0.04); border: 1px solid rgba(0,180,255,0.2);
+    border-radius: 14px; padding: 18px; margin-bottom: 14px; display: none;
+  }
+  .result-card.show { display: block; }
+  .result-row { margin-bottom: 14px; }
+  .result-row:last-child { margin-bottom: 0; }
+  .result-label {
+    font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: 'Space Mono', monospace; margin-bottom: 6px;
+  }
+  .link-box {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 10px 12px;
+    font-family: 'Space Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.55);
+    word-break: break-all; line-height: 1.5; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 8px;
+    -webkit-tap-highlight-color: transparent; transition: border-color 0.15s;
+  }
+  .link-box:active { border-color: rgba(255,255,255,0.2); }
+  .link-box .ltext { flex: 1; }
+  .link-box .ico { color: rgba(255,255,255,0.3); flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+
+  .share-box {
+    background: rgba(0,180,255,0.06); border: 1px solid rgba(0,180,255,0.28);
+    border-radius: 8px; padding: 10px 12px;
+    font-family: 'Space Mono', monospace; font-size: 12px; color: #00b4ff;
+    word-break: break-all; line-height: 1.5; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .share-box:active { opacity: 0.75; }
+  .share-box .ltext { flex: 1; }
+  .share-box .ico { color: rgba(0,180,255,0.5); flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+
+  .badge-share {
+    display: inline-block; background: rgba(0,180,255,0.1); color: #00b4ff;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 2px 8px; border-radius: 20px;
+    font-family: 'Space Mono', monospace; margin-bottom: 6px;
+  }
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 12px 0; }
+
+  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .btn-sm {
+    padding: 11px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+    color: rgba(255,255,255,0.7); font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
+    -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+  }
+  .btn-sm:active { background: rgba(255,255,255,0.1); transform: scale(0.97); }
+
+  /* History */
+  .history-section { margin-top: 6px; }
+  .history-title {
+    font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.25);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: 'Space Mono', monospace; margin-bottom: 10px;
+  }
+  .history-item {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 11px 13px; margin-bottom: 8px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; transition: border-color 0.15s;
+  }
+  .history-item:active { border-color: rgba(255,255,255,0.15); }
+  .history-short { font-family: 'Space Mono', monospace; font-size: 12px; color: #00b4ff; margin-bottom: 3px; }
+  .history-original { font-size: 12px; color: rgba(255,255,255,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Settings overlay */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 50; display: none; align-items: flex-end;
+  }
+  .overlay.open { display: flex; }
+  .panel {
+    background: #0a1520; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px calc(40px + env(safe-area-inset-bottom, 0px));
+    width: 100%; animation: slideup 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideup { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .panel-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 0 auto 22px; }
+  .panel-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.35);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: 'Space Mono', monospace; margin-bottom: 7px;
+  }
+  .field input {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 9px; color: #fff;
+    font-family: 'Space Mono', monospace; font-size: 14px;
+    padding: 13px 14px; outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: rgba(0,180,255,0.4); }
+  .btn-save {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #00b4ff, #0077cc);
+    border: none; border-radius: 10px; color: #fff;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+    cursor: pointer; margin-top: 6px; -webkit-tap-highlight-color: transparent;
+  }
+  .btn-save:active { opacity: 0.85; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #0f1e2e; border: 1px solid rgba(0,180,255,0.2);
+    color: #fff; padding: 10px 22px; border-radius: 30px;
+    font-family: 'Space Mono', monospace; font-size: 13px;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 99; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="wrap">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🛡️</div>
+      <div class="logo-name">LinkGuard</div>
+    </div>
+    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+  </div>
+
+  <h1 class="headline">Paste URL,<br>get <span>protected</span></h1>
+  <p class="sub">Auto shortens → wraps in CAPTCHA wall → one link to share.</p>
+
+  <div class="no-config" id="noConfig">
+    ⚠️ First time? Tap ⚙️ to enter your Vercel URL + Admin Key.
+  </div>
+
+  <div class="card">
+    <div class="card-label">Long URL to protect</div>
+    <textarea id="urlInput" rows="3" placeholder="https://drive.google.com/file/d/..."></textarea>
+    <button class="btn-generate" id="genBtn" onclick="generate()">
+      <span id="btnLabel">Generate Protected Link →</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-row">
+      <div class="result-label">🔗 lksfy short link</div>
+      <div class="link-box" onclick="copyText('shortLink')">
+        <span class="ltext" id="shortLink">—</span>
+        <span class="ico">📋</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="result-row">
+      <div class="badge-share">✦ Share this one</div>
+      <div class="result-label">Protected link</div>
+      <div class="share-box" onclick="copyText('protectedLink')">
+        <span class="ltext" id="protectedLink">—</span>
+        <span class="ico">📋</span>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn-sm" onclick="shareIt()">↗ Share</button>
+      <button class="btn-sm" onclick="newLink()">+ New link</button>
+    </div>
+  </div>
+
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-title">Recent</div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- Settings panel -->
+<div class="overlay" id="overlay" onclick="maybeClose(event)">
+  <div class="panel" id="panel">
+    <div class="panel-handle"></div>
+    <div class="panel-title">Setup</div>
+    <div class="field">
+      <label>Vercel Site URL</label>
+      <input type="url" id="siteUrl" placeholder="https://your-project.vercel.app" inputmode="url" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Admin Key</label>
+      <input type="password" id="adminKey" placeholder="Your ADMIN_KEY from Vercel" autocomplete="off">
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function getConfig() {
+  const s = JSON.parse(localStorage.getItem('plg-settings') || '{}');
+  return { siteUrl: s.siteUrl || '', adminKey: s.adminKey || '' };
+}
+
+function checkConfig() {
+  const c = getConfig();
+  $('noConfig').classList.toggle('show', !c.siteUrl || !c.adminKey);
+}
+
+function openSettings() {
+  const c = getConfig();
+  $('siteUrl').value = c.siteUrl;
+  $('adminKey').value = c.adminKey;
+  $('overlay').classList.add('open');
+}
+
+function maybeClose(e) {
+  if (e.target === $('overlay')) $('overlay').classList.remove('open');
+}
+
+function saveSettings() {
+  const url = $('siteUrl').value.trim().replace(/\/$/, '');
+  const key = $('adminKey').value.trim();
+  if (!url || !key) { showToast('Fill in both fields'); return; }
+  localStorage.setItem('plg-settings', JSON.stringify({ siteUrl: url, adminKey: key }));
+  $('overlay').classList.remove('open');
+  checkConfig();
+  showToast('Saved ✓');
+}
+
+async function generate() {
+  const url = $('urlInput').value.trim();
+  if (!url) { showErr('Paste a URL first'); return; }
+  if (!url.startsWith('http')) { showErr('URL must start with http:// or https://'); return; }
+
+  const c = getConfig();
+  if (!c.siteUrl || !c.adminKey) {
+    showErr('Setup needed — tap ⚙️ first');
+    openSettings(); return;
+  }
+
+  setLoading(true);
+  $('errorBox').classList.remove('show');
+
+  try {
+    const res = await fetch(`${c.siteUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': c.adminKey },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to generate link');
+    if (!data.success) throw new Error(data.error || 'Failed to generate link');
+
+    $('shortLink').textContent = data.short_url;
+    $('protectedLink').textContent = data.protected_url;
+    $('resultCard').classList.add('show');
+    $('urlInput').value = '';
+
+    saveHistory({ shortUrl: data.short_url, protectedUrl: data.protected_url, original: url });
+    renderHistory();
+  } catch (err) {
+    showErr(err.message || 'Could not reach your Vercel site. Check Settings.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function setLoading(on) {
+  $('genBtn').disabled = on;
+  $('spinner').style.display = on ? 'block' : 'none';
+  $('btnLabel').textContent = on ? 'Creating…' : 'Generate Protected Link →';
+}
+
+function showErr(msg) {
+  const b = $('errorBox'); b.textContent = msg; b.classList.add('show');
+}
+
+function copyText(id) {
+  const text = $(id).textContent;
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('Copied!'))
+    .catch(() => {
+      const el = document.createElement('textarea');
+      el.value = text; document.body.appendChild(el);
+      el.select(); document.execCommand('copy'); document.body.removeChild(el);
+      showToast('Copied!');
+    });
+}
+
+function shareIt() {
+  const url = $('protectedLink').textContent;
+  if (navigator.share) { navigator.share({ title: 'Protected Link', url }); }
+  else { copyText('protectedLink'); }
+}
+
+function newLink() {
+  $('resultCard').classList.remove('show');
+  $('urlInput').focus();
+}
+
+function showToast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function saveHistory(item) {
+  const h = JSON.parse(localStorage.getItem('plg-history') || '[]');
+  h.unshift({ ...item, time: Date.now() });
+  localStorage.setItem('plg-history', JSON.stringify(h.slice(0, 10)));
+}
+
+function renderHistory() {
+  const h = JSON.parse(localStorage.getItem('plg-history') || '[]');
+  if (!h.length) return;
+  $('historySection').style.display = 'block';
+  $('historyList').innerHTML = h.map(item => `
+    <div class="history-item" onclick="showResult('${encodeURIComponent(item.shortUrl)}','${encodeURIComponent(item.protectedUrl)}')">
+      <div class="history-short">${item.protectedUrl}</div>
+      <div class="history-original">${item.original}</div>
+    </div>
+  `).join('');
+}
+
+function showResult(s, p) {
+  $('shortLink').textContent = decodeURIComponent(s);
+  $('protectedLink').textContent = decodeURIComponent(p);
+  $('resultCard').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Auto-generate on paste
+$('urlInput').addEventListener('paste', () => {
+  setTimeout(() => { if ($('urlInput').value.trim()) generate(); }, 150);
+});
+$('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); generate(); }
+});
+
+checkConfig();
+renderHistory();
+</script>
+</body>
+</html>
