@@ -4,7 +4,7 @@
     { "src": "public/**", "use": "@vercel/static" },
     { "src": "generator.html", "use": "@vercel/static" }
   ],
-  "routes": [
+"routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/token/(.*)", "dest": "/public/index.html" },
     { "src": "/generator.html", "dest": "/generator.html" }
