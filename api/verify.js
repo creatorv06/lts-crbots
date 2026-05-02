@@ -9,6 +9,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Missing token' });
   }
 
+  // 1. Verify Cloudflare Turnstile
   const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,9 +26,10 @@ export default async function handler(req, res) {
     return res.status(403).json({ success: false, error: 'Cloudflare verification failed' });
   }
 
+  // 2. Decode destination URL from token
   try {
     const decoded = Buffer.from(token, 'base64url').toString('utf-8');
-    new URL(decoded);
+    new URL(decoded); // validate it's a real URL
     return res.status(200).json({ success: true, url: decoded });
   } catch (err) {
     return res.status(400).json({ success: false, error: 'Invalid link token' });
