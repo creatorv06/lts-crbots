@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Verify to Continue — VM-MRX</title>
+<title>Verify to Continue — VM-MRX-PROTECTION </title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
@@ -487,13 +487,48 @@ body::after{
 })();
 
 /* ── Cloudflare Turnstile Callbacks ── */
-function onTurnstileSuccess(token){
-  const s=document.getElementById('cfStatus');
-  s.textContent='✓ Human verified! Starting redirect...';
+let verifiedCFToken = null;
+
+async function onTurnstileSuccess(cfToken){
+  verifiedCFToken = cfToken;
+
+  const s = document.getElementById('cfStatus');
+  s.textContent = '✓ Human verified! Validating secure token...';
   s.classList.add('success');
-  // token is the real CF token — you can send it to your backend here if needed
-  // e.g. fetch('/verify', {method:'POST', body: JSON.stringify({token})})
-  setTimeout(startVerify, 800);
+
+  try {
+    const token = window.location.pathname.split('/token/')[1];
+
+    if (!token) {
+      throw new Error('Missing token');
+    }
+
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        token,
+        cfToken
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Verification failed');
+    }
+
+    startVerify(data.url);
+
+  } catch (err) {
+    s.textContent = '✗ Verification failed';
+    s.classList.remove('success');
+    s.classList.add('error');
+
+    console.error(err);
+  }
 }
 function onTurnstileError(){
   const s=document.getElementById('cfStatus');
@@ -508,7 +543,7 @@ function onTurnstileExpired(){
   turnstile.reset();
 }
 
-function startVerify(){
+function startVerify(redirecturl){
   document.getElementById('countdownWrap').style.display='none';
   document.getElementById('initialState').style.display='none';
   const pw=document.getElementById('progressWrap');
@@ -526,12 +561,7 @@ function startVerify(){
     if(p>=100){clearInterval(t);document.getElementById(steps[2].id).classList.replace('active','done');document.getElementById(steps[2].iid).textContent='✓';plbl.textContent='COMPLETE';showSuccess();}
   },38);
 }
-
-function showSuccess(){
-  // Read the destination URL from the path: /token/ENCODED_URL
-  const pathParts = window.location.pathname.split('/token/');
-  const redirectUrl = pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
-
+function showSuccess(redirectUrl){
   setTimeout(()=>{
     document.getElementById('progressWrap').style.display='none';
     document.getElementById('successWrap').style.display='flex';
@@ -539,10 +569,13 @@ function showSuccess(){
     if(redirectUrl){
       document.getElementById('mLink').href = redirectUrl;
       document.getElementById('mLink').style.display = 'inline';
-      setTimeout(()=>{ window.location.href = redirectUrl; }, 3500);
+
+      setTimeout(()=>{
+        window.location.href = redirectUrl;
+      }, 3500);
+
     } else {
-      // No token in URL — show a fallback message
-      document.getElementById('mLink').textContent = '⚠ No redirect URL found in link';
+      document.getElementById('mLink').textContent = '⚠ Redirect URL missing';
       document.getElementById('mLink').style.display = 'inline';
       document.getElementById('mLink').style.color = '#ff6680';
     }
