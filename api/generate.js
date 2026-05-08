@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   try {
     // Shorten URL
     const shortRes = await fetch(
-      `https://linkshortify.com/api?api=${process.env.LKSFY_API_KEY}&url=${encodeURIComponent(url)}`
+      `https://arolinks.com/api?api=${process.env.LKSFY_API_KEY}&url=${encodeURIComponent(url)}`
     );
 
     const shortData = await shortRes.json();
